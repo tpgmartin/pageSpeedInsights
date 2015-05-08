@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Page Speed Insights</title>
+  <title>PageSpeed Insights</title>
+  <link rel="stylesheet" type="text/css" href="stylesheets/styles.css">
 </head>
 <body>
+  <h1>PageSpeed Insights</h1>
   <script src="js/config.js"></script>
   <script>
-  
+
     var API_URL = 'https://www.googleapis.com/pagespeedonline/v1/runPagespeed?';
     var CHART_API_URL = 'http://chart.apis.google.com/chart?';
 
@@ -17,13 +19,18 @@
     // Invokes the PageSpeed Insights API. The response will contain
     // JavaScript that invokes our callback with the PageSpeed results.
     function runPagespeed() {
-      var s = document.createElement('script');
+      // var s = document.createElement('script');
       // Run desktop, mobile benchmarks
-      var strategies = ['mobile'];
-      s.type = 'text/javascript';
-      s.async = true;
+      var strategies = ['desktop', 'mobile'];
+      // s.type = 'text/javascript';
+      // s.async = true;
 
       strategies.forEach(function(strategy) {
+        var s = document.createElement('script');
+
+        s.type = 'text/javascript';
+        s.async = true;
+
         var query = [
           'url=' + URL_TO_GET_RESULTS_FOR,
           'callback=runPagespeedCallbacks',
@@ -31,11 +38,14 @@
           'key=' + API_KEY,
         ].join('&');
 
+        var h = document.createElement('h2');
+        h.innerHTML = strategy && strategy[0].toUpperCase() + strategy.slice(1);;
+        document.body.insertBefore(h, null);
+        console.log(API_URL + query);
         s.src = API_URL + query;
         document.head.insertBefore(s, null);
 
       });
-
 
       // s.src = API_URL + query;
       // document.head.insertBefore(s, null);
@@ -43,6 +53,7 @@
 
     // Our JSONP callback. Checks for errors, then invokes our callback handlers.
     function runPagespeedCallbacks(result) {
+      console.log(result);
       if (result.error) {
         var errors = result.error.errors;
         for (var i = 0, len = errors.length; i < len; ++i) {
@@ -82,30 +93,47 @@
         'chxt=x,y',
         'chxl=0:|' + score,
       ].join('&');
+      var container = document.createElement('div');
+      document.body.insertBefore(container, null);
+
+      var h = document.createElement('h3');
+      h.innerHTML = 'PageSpeed Score';
+
+      container.appendChild(h);
+
       var i = document.createElement('img');
       i.src = CHART_API_URL + query;
-      document.body.insertBefore(i, null);
+      container.appendChild(i);
     };
 
     callbacks.displayTopPageSpeedSuggestions = function(result) {
       var results = [];
       var ruleResults = result.formattedResults.ruleResults;
+
+      var container = document.createElement('div');
+      document.body.insertBefore(container, null);
+
+      var h = document.createElement('h3');
+      h.innerHTML = 'Page Speed suggestions (ordered by impact)';
+      container.appendChild(h);
+
       for (var i in ruleResults) {
         var ruleResult = ruleResults[i];
         // Don't display lower-impact suggestions.
-        if (ruleResult.ruleImpact < 3.0) continue;
+        if (ruleResult.ruleImpact === 0) continue;
         results.push({name: ruleResult.localizedRuleName,
-                      impact: ruleResult.ruleImpact});
+                      impact: ruleResult.ruleImpact,
+                      summary: ruleResult.groups});
       }
       results.sort(sortByImpact);
-      var ul = document.createElement('ul');
+      var ol = document.createElement('ol');
       for (var i = 0, len = results.length; i < len; ++i) {
         var r = document.createElement('li');
-        r.innerHTML = results[i].name;
-        ul.insertBefore(r, null);
+        r.innerHTML = results[i].name + " (" + Number(results[i].impact).toFixed(1) + ")";
+        ol.insertBefore(r, null);
       }
-      if (ul.hasChildNodes()) {
-        document.body.insertBefore(ul, null);
+      if (ol.hasChildNodes()) {
+        container.appendChild(ol);
       } else {
         var div = document.createElement('div');
         div.innerHTML = 'No high impact suggestions. Good job!';
@@ -158,9 +186,18 @@
         'chp=1.6',
         'chds=0,' + largestSingleCategory,
       ].join('&');
+
+      var container = document.createElement('div');
+      document.body.insertBefore(container, null);
+
+      var h = document.createElement('h3');
+      h.innerHTML = 'Resource Size Breakdown';
+
+      container.appendChild(h);
+
       var i = document.createElement('img');
       i.src = 'http://chart.apis.google.com/chart?' + query;
-      document.body.insertBefore(i, null);
+      container.appendChild(i);
     };
 
   </script>
