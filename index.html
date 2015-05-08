@@ -19,11 +19,7 @@
     // Invokes the PageSpeed Insights API. The response will contain
     // JavaScript that invokes our callback with the PageSpeed results.
     function runPagespeed() {
-      // var s = document.createElement('script');
-      // Run desktop, mobile benchmarks
       var strategies = ['desktop', 'mobile'];
-      // s.type = 'text/javascript';
-      // s.async = true;
 
       strategies.forEach(function(strategy) {
         var s = document.createElement('script');
@@ -41,14 +37,12 @@
         var h = document.createElement('h2');
         h.innerHTML = strategy && strategy[0].toUpperCase() + strategy.slice(1);;
         document.body.insertBefore(h, null);
-        console.log(API_URL + query);
+
         s.src = API_URL + query;
         document.head.insertBefore(s, null);
 
       });
 
-      // s.src = API_URL + query;
-      // document.head.insertBefore(s, null);
     }
 
     // Our JSONP callback. Checks for errors, then invokes our callback handlers.
@@ -94,6 +88,7 @@
         'chxl=0:|' + score,
       ].join('&');
       var container = document.createElement('div');
+      container.className = 'container';
       document.body.insertBefore(container, null);
 
       var h = document.createElement('h3');
@@ -111,6 +106,7 @@
       var ruleResults = result.formattedResults.ruleResults;
 
       var container = document.createElement('div');
+      container.className = 'container';
       document.body.insertBefore(container, null);
 
       var h = document.createElement('h3');
@@ -188,6 +184,7 @@
       ].join('&');
 
       var container = document.createElement('div');
+      container.className = 'container';
       document.body.insertBefore(container, null);
 
       var h = document.createElement('h3');

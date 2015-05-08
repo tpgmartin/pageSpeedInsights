@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PageSpeed Insights - Desktop</title>
+  <link rel="stylesheet" type="text/css" href="stylesheets/styles.css">
+  <script type="text/javascript" src="js/lib/jquery-1.11.3.min.js"></script>
+</head>
+<body>
+  <h1>PageSpeed Insights</h1>
+  <script src="js/config.js"></script>
+
+  <script>
+    (function() {
+      $.getJSON( "desktop/2015-05-08.json", function( result ) {
+
+        var API_URL = 'https://www.googleapis.com/pagespeedonline/v1/runPagespeed?';
+        var CHART_API_URL = 'http://chart.apis.google.com/chart?';
+        var callbacks = {};
+
+        callbacks.displayPageSpeedScore = function(result) {
+          var score = result.score;
+          // Construct the query to send to the Google Chart Tools.
+          var query = [
+            'chtt=Page+Speed+score:+' + score,
+            'chs=180x100',
+            'cht=gom',
+            'chd=t:' + score,
+            'chxt=x,y',
+            'chxl=0:|' + score,
+          ].join('&');
+          var container = document.createElement('div');
+          container.className = 'container';
+          document.body.insertBefore(container, null);
+
+          var h = document.createElement('h3');
+          h.innerHTML = 'PageSpeed Score';
+
+          container.appendChild(h);
+
+          var i = document.createElement('img');
+          i.src = CHART_API_URL + query;
+          container.appendChild(i);
+        };
+
+        callbacks.displayTopPageSpeedSuggestions = function(result) {
+          var results = [];
+          var ruleResults = result.formattedResults.ruleResults;
+
+          var container = document.createElement('div');
+          container.className = 'container';
+          document.body.insertBefore(container, null);
+
+          var h = document.createElement('h3');
+          h.innerHTML = 'Page Speed suggestions (ordered by impact)';
+          container.appendChild(h);
+
+          for (var i in ruleResults) {
+            var ruleResult = ruleResults[i];
+            // Don't display lower-impact suggestions.
+            if (ruleResult.ruleImpact === 0) continue;
+            results.push({name: ruleResult.localizedRuleName,
+                          impact: ruleResult.ruleImpact,
+                          summary: ruleResult.groups});
+          }
+          results.sort(sortByImpact);
+          var ol = document.createElement('ol');
+          for (var i = 0, len = results.length; i < len; ++i) {
+            var r = document.createElement('li');
+            r.innerHTML = results[i].name + " (" + Number(results[i].impact).toFixed(1) + ")";
+            ol.insertBefore(r, null);
+          }
+          if (ol.hasChildNodes()) {
+            container.appendChild(ol);
+          } else {
+            var div = document.createElement('div');
+            div.innerHTML = 'No high impact suggestions. Good job!';
+            document.body.insertBefore(div, null);
+          }
+        };
+
+        // Helper function that sorts results in order of impact.
+        function sortByImpact(a, b) { return b.impact - a.impact; }
+
+        var RESOURCE_TYPE_INFO = [
+          {label: 'JavaScript', field: 'javascriptResponseBytes', color: 'e2192c'},
+          {label: 'Images', field: 'imageResponseBytes', color: 'f3ed4a'},
+          {label: 'CSS', field: 'cssResponseBytes', color: 'ff7008'},
+          {label: 'HTML', field: 'htmlResponseBytes', color: '43c121'},
+          {label: 'Flash', field: 'flashResponseBytes', color: 'f8ce44'},
+          {label: 'Text', field: 'textResponseBytes', color: 'ad6bc5'},
+          {label: 'Other', field: 'otherResponseBytes', color: '1051e8'},
+        ];
+
+        callbacks.displayResourceSizeBreakdown = function(result) {
+          var stats = result.pageStats;
+          var labels = [];
+          var data = [];
+          var colors = [];
+          var totalBytes = 0;
+          var largestSingleCategory = 0;
+          for (var i = 0, len = RESOURCE_TYPE_INFO.length; i < len; ++i) {
+            var label = RESOURCE_TYPE_INFO[i].label;
+            var field = RESOURCE_TYPE_INFO[i].field;
+            var color = RESOURCE_TYPE_INFO[i].color;
+            if (field in stats) {
+              var valKB = Number(stats[field] / 1024);
+              totalBytes += valKB;
+              if (valKB > largestSingleCategory) largestSingleCategory = valKB;
+              labels.push(label + ' ' + valKB.toFixed(1) + 'kB');
+              data.push(valKB);
+              colors.push(color);
+            }
+            console.log(totalBytes);
+          }
+          // Construct the query to send to the Google Chart Tools.
+          var query = [
+            'chs=300x140',
+            'cht=p3',
+            'chts=' + ['000000', 16].join(','),
+            'chco=' + colors.join('|'),
+            'chd=t:' + data.join(','),
+            'chdl=' + labels.join('|'),
+            'chdls=000000,14',
+            'chp=1.6',
+            'chds=0,' + largestSingleCategory,
+          ].join('&');
+
+          var container = document.createElement('div');
+          container.className = 'container';
+          document.body.insertBefore(container, null);
+
+          var h = document.createElement('h3');
+          h.innerHTML = 'Resource Size Breakdown (total weight: ' + totalBytes.toFixed(1) + 'kB)';
+
+          container.appendChild(h);
+
+          var i = document.createElement('img');
+          i.src = 'http://chart.apis.google.com/chart?' + query;
+          container.appendChild(i);
+        };
+
+        // Our JSONP callback. Checks for errors, then invokes our callback handlers.
+        function runPagespeedCallbacks(result) {
+          if (result.error) {
+            var errors = result.error.errors;
+            for (var i = 0, len = errors.length; i < len; ++i) {
+              if (errors[i].reason == 'badRequest' && API_KEY == 'yourAPIKey') {
+                alert('Please specify your Google API key in the API_KEY variable.');
+              } else {
+                // NOTE: your real production app should use a better
+                // mechanism than alert() to communicate the error to the user.
+                alert(errors[i].message);
+              }
+            }
+            return;
+          }
+
+          // Dispatch to each function on the callbacks object.
+          for (var fn in callbacks) {
+            var f = callbacks[fn];
+            if (typeof f == 'function') {
+              callbacks[fn](result);
+            }
+          }
+        }
+
+        // Invoke the callback that fetches results. Async here so we're sure
+        // to discover any callbacks registered below, but this can be
+        // synchronous in your code.
+        setTimeout(runPagespeedCallbacks(result), 0);
+        
+      });
+    })();
+  </script>
+</body>
+</html>
